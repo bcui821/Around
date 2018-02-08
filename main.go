@@ -90,9 +90,9 @@ func handlerPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "Post received: %s\n", p.Message)
-	// Save to ES.
-	//id := uuid.New()
-	//saveToES(&p, id)
+	//Save to ES.
+	id := uuid.New()
+	saveToES(&p, id)
 	// Save to BigTable
 	saveToBigTable(&p)
 }
