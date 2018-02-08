@@ -11,6 +11,8 @@ import (
 	"github.com/pborman/uuid"
 	elastic "gopkg.in/olivere/elastic.v3"
 	"strings"
+	"context"
+	"cloud.google.com/go/bigtable"
 )
 
 const (
@@ -18,10 +20,10 @@ const (
 	TYPE = "post"
 	DISTANCE = "200km"
 	// Needs to update
-	//PROJECT_ID = "around-xxx"
-	//BT_INSTANCE = "around-post"
-	// Needs to update this URL if you deploy it to cloud.
-	ES_URL = "http://35.196.159.211:9200"
+	PROJECT_ID = "protean-garage-194222"
+	BT_INSTANCE = "around-post"
+	//Needs to update this URL if you deploy it to cloud.
+	ES_URL = "http://35.231.127.133:9200"
 )
 
 
@@ -88,10 +90,37 @@ func handlerPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "Post received: %s\n", p.Message)
-	id := uuid.New()
 	// Save to ES.
-	saveToES(&p, id)
+	//id := uuid.New()
+	//saveToES(&p, id)
+	// Save to BigTable
+	saveToBigTable(&p)
+}
 
+// Save posts to BigTable
+func saveToBigTable(p *Post) {
+	ctx := context.Background()
+	// you must update project name here
+	bt_client, err := bigtable.NewClient(ctx, PROJECT_ID, BT_INSTANCE)
+	if err != nil {
+		panic(err)
+		return
+	}
+
+	tbl := bt_client.Open("mytable")
+	mut := bigtable.NewMutation()
+	t := bigtable.Now()
+	mut.Set("post", "user", t, []byte("p.User"))
+	mut.Set("post", "message", t, []byte("p.Message"))
+	mut.Set("location", "lat", t, []byte(strconv.FormatFloat(p.Location.Lat, 'f', -1, 64)))
+	mut.Set("location", "lon", t, []byte(strconv.FormatFloat(p.Location.Lon, 'f', -1, 64)))
+
+	errCreateTable := tbl.Apply(ctx, "com.google.cloud", mut)
+	if errCreateTable != nil {
+		panic(err)
+		return
+	}
+	fmt.Printf("Post is saved to BigTable: %s\n", p.Message)
 }
 
 // Save a post to ElasticSearch
@@ -130,7 +159,7 @@ func handlerSearch(w http.ResponseWriter, r *http.Request) {
 		ran = val + "km"
 	}
 
-	fmt.Fprintf(w, "Search received: lat: %f lon: %f range: %s\n", lat, lon, ran)
+	//fmt.Fprintf(w, "Search received: lat: %f lon: %f range: %s\n", lat, lon, ran)
 
 	// Create a client
 	client, err := elastic.NewClient(elastic.SetURL(ES_URL), elastic.SetSniff(false))
