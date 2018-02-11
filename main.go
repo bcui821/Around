@@ -23,7 +23,7 @@ const (
 	PROJECT_ID = "protean-garage-194222"
 	BT_INSTANCE = "around-post"
 	//Needs to update this URL if you deploy it to cloud.
-	ES_URL = "http://35.231.127.133:9200"
+	ES_URL = "http://35.231.41.30:9200"
 )
 
 
